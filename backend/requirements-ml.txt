@@ -1,0 +1,7 @@
+# Optional ML extras for ShopMate AI.
+# Install with:  pip install -r requirements-ml.txt
+# Provides real semantic embeddings via Sentence-Transformers.
+# The backend automatically falls back to a deterministic TF-IDF/hashing
+# embedder when this file is not installed, so core features still work.
+
+sentence-transformers>=3.0.0
