@@ -40,7 +40,12 @@ function resolveApiBase(): string {
       return configured;
     }
   }
-  return `${window.location.protocol}//${pageHost}:8000`;
+  // Not configured: on localhost talk to the local API on :8000; anywhere
+  // else (e.g. Vercel) use same-origin relative paths — the deployment
+  // proxies /api/* to the backend (see rewrites in next.config.ts), which
+  // keeps the httpOnly session cookie same-site.
+  if (loopback(pageHost)) return `${window.location.protocol}//${pageHost}:8000`;
+  return "";
 }
 
 export const API_BASE = resolveApiBase();
