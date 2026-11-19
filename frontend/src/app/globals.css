@@ -68,6 +68,14 @@ body {
   color: var(--foreground);
 }
 
+/* App shell: the fixed left sidebar (w-64) owns 16rem on large screens,
+ * so everything else — pages, footer, auth cards — shifts right of it. */
+@media (min-width: 1024px) {
+  body {
+    padding-left: 16rem;
+  }
+}
+
 @layer components {
   /* Ambient background used by the landing + dashboard shells. */
   .bg-grid {
