@@ -8,29 +8,82 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Moon,
   Scale,
   Search,
   Tag,
   Settings,
   Sparkles,
+  Sun,
+  WifiOff,
+  Loader2,
   X,
   Bookmark,
   Bell,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { useConnectionStatus } from "@/hooks/useConnectionStatus";
 
+/**
+ * Each section owns a hue: the pill shows a tinted background + a glowing
+ * dot in that colour when active, so the bar reads as a colourful dashboard
+ * rail instead of uniform grey links.
+ */
 const LINKS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/chat", label: "Research", icon: MessageSquare },
-  { href: "/explore", label: "Explore", icon: Search },
-  { href: "/deals", label: "Live deals", icon: Tag },
-  { href: "/compare", label: "Compare", icon: Scale },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/watchlist", label: "Watchlist", icon: Bell },
-  { href: "/history", label: "History", icon: History },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, hue: "#818cf8" },
+  { href: "/chat", label: "Research", icon: MessageSquare, hue: "#22d3ee" },
+  { href: "/explore", label: "Explore", icon: Search, hue: "#34d399" },
+  { href: "/deals", label: "Live deals", icon: Tag, hue: "#fbbf24" },
+  { href: "/compare", label: "Compare", icon: Scale, hue: "#f472b6" },
+  { href: "/saved", label: "Saved", icon: Bookmark, hue: "#a78bfa" },
+  { href: "/watchlist", label: "Watchlist", icon: Bell, hue: "#fb923c" },
+  { href: "/history", label: "History", icon: History, hue: "#60a5fa" },
+  { href: "/settings", label: "Settings", icon: Settings, hue: "#94a3b8" },
 ];
+
+function StatusPill() {
+  const status = useConnectionStatus();
+  const label =
+    status === "online" ? "Online" : status === "offline" ? "Offline" : "Checking…";
+  const color =
+    status === "online" ? "text-success" : status === "offline" ? "text-danger" : "text-muted";
+  const dotBg =
+    status === "online" ? "bg-success" : status === "offline" ? "bg-danger" : "bg-muted";
+  return (
+    <span
+      className={`hidden items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-medium sm:inline-flex ${color}`}
+      data-testid="connection-status"
+      data-status={status}
+      title={status === "online" ? "Backend reachable" : status === "offline" ? "No connection to the backend" : "Checking backend…"}
+    >
+      {status === "checking" ? (
+        <Loader2 size={12} className="animate-spin" />
+      ) : status === "offline" ? (
+        <WifiOff size={12} />
+      ) : (
+        <span className={`status-dot ${dotBg} text-current`} />
+      )}
+      {label}
+    </span>
+  );
+}
+
+function ThemeToggleButton() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={theme === "light" ? "Switch to night mode" : "Switch to day mode"}
+      data-testid="theme-toggle"
+      className="rounded-full border border-border bg-surface p-2 text-muted transition hover:border-accent hover:text-accent"
+    >
+      {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
+    </button>
+  );
+}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -45,26 +98,36 @@ export default function Navbar() {
 
   return (
     <header className="glass sticky top-0 z-40">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-bold">
-          <Sparkles size={20} className="text-accent-2" />
+      {/* Colourful top ribbon */}
+      <div
+        className="h-1 w-full"
+        style={{
+          background:
+            "linear-gradient(90deg, #4f8cff, #22d3ee, #a78bfa, #f472b6, #fbbf24, #34d399)",
+        }}
+        aria-hidden
+      />
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-bold">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-[#04101f]">
+            <Sparkles size={17} />
+          </span>
           <span className="text-gradient text-lg">ShopMate AI</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" data-testid="desktop-nav">
-          {LINKS.map(({ href, label, icon: Icon }) => {
+        <nav className="hidden items-center gap-1 xl:flex" data-testid="desktop-nav">
+          {LINKS.map(({ href, label, icon: Icon, hue }) => {
             const active = pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition ${
-                  active
-                    ? "bg-accent/15 text-accent"
-                    : "text-muted hover:bg-surface-2 hover:text-foreground"
-                }`}
+                className="nav-pill"
+                style={{ "--nav-hue": hue } as CSSProperties}
+                data-active={active}
               >
-                <Icon size={15} />
+                <Icon size={14} />
+                <span className="nav-pill-dot h-1.5 w-1.5 rounded-full bg-transparent" />
                 {label}
               </Link>
             );
@@ -72,9 +135,11 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <StatusPill />
+          <ThemeToggleButton />
           {user ? (
             <>
-              <span className="hidden text-sm text-muted sm:block" data-testid="user-email">
+              <span className="hidden text-sm text-muted lg:block" data-testid="user-email">
                 {user.full_name}
               </span>
               <button
@@ -100,7 +165,7 @@ export default function Navbar() {
             type="button"
             aria-label="Toggle menu"
             onClick={() => setOpen((v) => !v)}
-            className="rounded-lg border border-border p-2 lg:hidden"
+            className="rounded-lg border border-border p-2 xl:hidden"
             data-testid="menu-toggle"
           >
             {open ? <X size={16} /> : <Menu size={16} />}
@@ -109,16 +174,16 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <nav className="border-t border-border px-4 py-3 lg:hidden" data-testid="mobile-nav">
+        <nav className="border-t border-border px-4 py-3 xl:hidden" data-testid="mobile-nav">
           <div className="grid grid-cols-2 gap-2">
-            {LINKS.map(({ href, label, icon: Icon }) => (
+            {LINKS.map(({ href, label, icon: Icon, hue }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                  pathname.startsWith(href) ? "bg-accent/15 text-accent" : "text-muted"
-                }`}
+                className="nav-pill"
+                style={{ "--nav-hue": hue } as CSSProperties}
+                data-active={pathname.startsWith(href)}
               >
                 <Icon size={15} /> {label}
               </Link>

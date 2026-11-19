@@ -46,6 +46,34 @@ def test_search_requires_query(auth_client):
     assert auth_client.post("/api/products/search", json={"query": ""}).status_code == 422
 
 
+def test_featured_feed_loads_without_a_query(auth_client):
+    """Explore's landing state: a populated feed with no search text."""
+    resp = auth_client.get("/api/products/featured")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] > 0
+    assert body["query"] == ""
+    for p in body["products"]:
+        assert p["price"] >= 0
+        assert p["last_verified_at"]
+        assert p["is_sample_data"] is True  # sample data must be labelled
+    # "not_configured" live providers are expected state, not surfaced errors.
+    for err in body["provider_errors"]:
+        assert "not_configured" not in err
+
+
+def test_featured_feed_category_filter(auth_client):
+    resp = auth_client.get("/api/products/featured", params={"category": "laptop"})
+    assert resp.status_code == 200
+    for p in resp.json()["products"]:
+        assert p["category"] == "laptop"
+
+
+def test_featured_is_not_treated_as_a_product_id(auth_client):
+    """Route order: /featured must win over /{product_id}."""
+    assert auth_client.get("/api/products/featured").status_code == 200
+
+
 def test_get_product_by_provider_id(auth_client):
     resp = auth_client.post("/api/products/search", json={"query": "laptop"})
     provider_id = resp.json()["products"][0]["provider_product_id"]

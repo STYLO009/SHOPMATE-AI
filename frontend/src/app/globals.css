@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ *
+ * Theme tokens.
+ *
+ * Dark is the default; `[data-theme="light"]` (set on <html> by
+ * ThemeContext + a pre-hydration script) redefines the same custom
+ * properties, so every `bg-surface / text-muted / border-border`
+ * utility follows the active theme with no per-component changes.
+ * ------------------------------------------------------------------ */
 :root {
+  color-scheme: dark;
   --background: #070b14;
   --surface: #0d1424;
   --surface-2: #131c31;
@@ -12,6 +21,25 @@
   --success: #34d399;
   --warning: #fbbf24;
   --danger: #f87171;
+  --glass-bg: rgba(13, 20, 36, 0.78);
+  --grid-line: rgba(79, 140, 255, 0.06);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f4f7fd;
+  --surface: #ffffff;
+  --surface-2: #eef2fa;
+  --border: #d7e0f0;
+  --foreground: #0f172a;
+  --muted: #5b6577;
+  --accent: #2563eb;
+  --accent-2: #0891b2;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --grid-line: rgba(37, 99, 235, 0.07);
 }
 
 @theme inline {
@@ -39,15 +67,23 @@ body {
 /* Ambient background used by the landing + dashboard shells. */
 .bg-grid {
   background-image:
-    linear-gradient(to right, rgba(79, 140, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(79, 140, 255, 0.06) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
   background-size: 42px 42px;
 }
 
 .bg-glow {
   background:
     radial-gradient(600px 300px at 15% -10%, rgba(79, 140, 255, 0.22), transparent 60%),
-    radial-gradient(500px 260px at 85% 0%, rgba(34, 211, 238, 0.16), transparent 60%);
+    radial-gradient(500px 260px at 85% 0%, rgba(34, 211, 238, 0.16), transparent 60%),
+    radial-gradient(480px 320px at 60% 110%, rgba(167, 139, 250, 0.14), transparent 65%);
+}
+
+:root[data-theme="light"] .bg-glow {
+  background:
+    radial-gradient(600px 300px at 15% -10%, rgba(37, 99, 235, 0.14), transparent 60%),
+    radial-gradient(500px 260px at 85% 0%, rgba(8, 145, 178, 0.12), transparent 60%),
+    radial-gradient(480px 320px at 60% 110%, rgba(139, 92, 246, 0.10), transparent 65%);
 }
 
 .card {
@@ -57,13 +93,20 @@ body {
 }
 
 .glass {
-  background: rgba(13, 20, 36, 0.78);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border);
 }
 
 .text-gradient {
   background: linear-gradient(92deg, #4f8cff 0%, #22d3ee 55%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme="light"] .text-gradient {
+  background: linear-gradient(92deg, #1d4ed8 0%, #0e7490 55%, #7c3aed 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -96,7 +139,7 @@ body {
 }
 .btn-ghost:hover {
   border-color: var(--accent);
-  background: rgba(79, 140, 255, 0.08);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .input {
@@ -107,10 +150,11 @@ body {
   padding: 0.65rem 0.85rem;
   color: var(--foreground);
   outline: none;
-  transition: border-color 0.18s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .input::placeholder {
   color: var(--muted);
@@ -144,4 +188,83 @@ body {
 .scroll-thin::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 999px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Colourful navigation pills — one hue per section so the nav reads
+ * like a dashboard rather than a wall of grey links.
+ * ------------------------------------------------------------------ */
+.nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.42rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  border: 1px solid transparent;
+  transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+.nav-pill:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--nav-hue, var(--accent)) 14%, transparent);
+  border-color: color-mix(in srgb, var(--nav-hue, var(--accent)) 40%, transparent);
+  transform: translateY(-1px);
+}
+.nav-pill[data-active="true"] {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--nav-hue, var(--accent)) 18%, transparent);
+  border-color: color-mix(in srgb, var(--nav-hue, var(--accent)) 55%, transparent);
+}
+.nav-pill[data-active="true"] .nav-pill-dot {
+  background: var(--nav-hue, var(--accent));
+  box-shadow: 0 0 8px var(--nav-hue, var(--accent));
+}
+
+/* ------------------------------------------------------------------ *
+ * Brand marquee ("naming" strip on the landing page).
+ * ------------------------------------------------------------------ */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 38s linear infinite;
+}
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
+
+/* Online-status pulse */
+.status-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.status-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.5;
+  animation: status-ping 1.8s ease-out infinite;
+}
+@keyframes status-ping {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Floating research chat dock */
+.chat-dock-panel {
+  box-shadow: 0 24px 60px -12px rgba(2, 6, 23, 0.45);
 }

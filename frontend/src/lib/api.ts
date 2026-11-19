@@ -146,6 +146,15 @@ export const products = {
 
   get: (id: string) => request<Product>(`/api/products/${encodeURIComponent(id)}`),
 
+  /** Catalogue feed for the Explore landing state — no query required. */
+  featured: (opts: { category?: string | null; limit?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.category) params.set("category", opts.category);
+    params.set("limit", String(opts.limit ?? 24));
+    const qs = params.toString();
+    return request<SearchResponse>(`/api/products/featured${qs ? `?${qs}` : ""}`);
+  },
+
   compare: (product_ids: string[]) =>
     request<ComparisonResult>("/api/products/compare", {
       method: "POST",

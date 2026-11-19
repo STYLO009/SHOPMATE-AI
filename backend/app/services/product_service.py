@@ -156,6 +156,53 @@ async def search_products(
     )
 
 
+async def featured_products(
+    db: Session,
+    limit: int = 24,
+    category: Optional[str] = None,
+    registry: Optional[ProviderRegistry] = None,
+) -> SearchResponse:
+    """Catalogue feed for the Explore landing state (no query required).
+
+    Mirrors `search_products` but starts from an empty query so the sample
+    dataset (or any configured live provider that accepts it) fills the grid
+    the moment the page opens — the way a storefront homepage behaves.
+    """
+    started = time.perf_counter()
+    registry = registry or get_registry()
+
+    result = await registry.search(
+        query="", category=category, limit=max(limit * 2, 20),
+    )
+
+    products = [upsert_product(db, p) for p in result.products]
+    db.commit()
+
+    # Featured ordering: best rated first, then most reviewed, then cheapest.
+    products.sort(
+        key=lambda p: (-(p.rating or 0.0), -(p.review_count or 0), p.price),
+    )
+    total = len(products)
+    page = products[:limit]
+
+    # "not_configured" is expected state, not a problem worth alarming the UI.
+    errors: list[str] = []
+    for chunk in (result.error or "").split("; "):
+        if chunk and "not_configured" not in chunk:
+            errors.append(chunk)
+
+    return SearchResponse(
+        products=[ProductOut.model_validate(p) for p in page],
+        total=total,
+        query="",
+        category=category,
+        providers_queried=registry.provider_names,
+        provider_errors=errors,
+        is_sample_data=result.is_sample_data,
+        took_ms=int((time.perf_counter() - started) * 1000),
+    )
+
+
 def get_product(db: Session, product_id: str) -> Optional[Product]:
     """Fetch by internal id or by provider product id (e.g. 'SMP-LAP-001')."""
     product = db.get(Product, product_id)

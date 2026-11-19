@@ -1,11 +1,16 @@
 "use client";
 
-/** Explore: real provider search with filters, sorting and sample-data labelling. */
+/**
+ * Explore: opens like a storefront — the featured catalogue feed loads
+ * immediately (no empty state), with category chips and trending searches
+ * on top of the real provider search, filters, sorting and sample-data
+ * labelling.
+ */
 
-import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Search, SlidersHorizontal } from "lucide-react";
+import { Flame, Loader2, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import ProductCard, { type AnyProduct } from "@/components/ProductCard";
@@ -19,6 +24,24 @@ const CATEGORIES = [
   "smartwatch",
   "tablet",
   "camera",
+];
+
+/** Colour per category chip — keeps the filter row lively, not grey. */
+const CATEGORY_HUES: Record<string, string> = {
+  laptop: "#4f8cff",
+  smartphone: "#22d3ee",
+  headphones: "#a78bfa",
+  smartwatch: "#34d399",
+  tablet: "#fbbf24",
+  camera: "#f472b6",
+};
+
+const TRENDING = [
+  "gaming laptop",
+  "wireless headphones",
+  "smartphone under 45000",
+  "smartwatch",
+  "mirrorless camera",
 ];
 
 const SORTS = [
@@ -36,6 +59,7 @@ function ExploreInner() {
   const [budgetMax, setBudgetMax] = useState("");
   const [sortBy, setSortBy] = useState("relevance");
   const [result, setResult] = useState<SearchResponse | null>(null);
+  const [mode, setMode] = useState<"featured" | "search">("featured");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -47,8 +71,10 @@ function ExploreInner() {
       try {
         const effectiveQuery = q.trim() || cat.trim();
         if (!effectiveQuery) {
-          setResult(null);
-          setError("Enter a product name or choose a category to search.");
+          // Nothing to search: fall back to the featured feed.
+          const feed = await productsApi.featured({ category: cat || null, limit: 24 });
+          setResult(feed);
+          setMode("featured");
           return;
         }
         const res = await productsApi.search({
@@ -59,6 +85,7 @@ function ExploreInner() {
           limit: 24,
         });
         setResult(res);
+        setMode("search");
       } catch (err) {
         setError(
           err instanceof ApiRequestError ? err.message : "Search failed.",
@@ -71,26 +98,74 @@ function ExploreInner() {
     [],
   );
 
-  // Initial / URL-driven search.
+  // Initial load: URL-driven search if present, otherwise the featured feed
+  // so the page is populated the moment it opens (like a storefront).
   useEffect(() => {
     const q = params.get("q")?.trim() ?? "";
     const cat = params.get("category") ?? "";
-    const effectiveQuery = q || cat.trim();
-    if (!effectiveQuery) return;
     let cancelled = false;
-    productsApi.search({ query: effectiveQuery, category: cat || null, limit: 24, sort_by: "relevance" })
-      .then((response) => { if (!cancelled) setResult(response); })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(err instanceof ApiRequestError ? err.message : "Search failed.");
-      });
-    return () => { cancelled = true; };
+
+    const load = async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        if (q || cat.trim()) {
+          const res = await productsApi.search({
+            query: q || cat.trim(),
+            category: cat || null,
+            limit: 24,
+            sort_by: "relevance",
+          });
+          if (!cancelled) {
+            setResult(res);
+            setMode("search");
+          }
+        } else {
+          const feed = await productsApi.featured({ limit: 24 });
+          if (!cancelled) {
+            setResult(feed);
+            setMode("featured");
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiRequestError ? err.message : "Search failed.");
+        }
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void search(query, category, budgetMax, sortBy);
+  };
+
+  const pickCategory = (cat: string) => {
+    const next = cat === category ? "" : cat;
+    setCategory(next);
+    void search(query, next, budgetMax, sortBy);
+  };
+
+  const runTrending = (term: string) => {
+    setQuery(term);
+    setCategory("");
+    void search(term, "", budgetMax, sortBy);
+  };
+
+  const clearFilters = () => {
+    setQuery("");
+    setCategory("");
+    setBudgetMax("");
+    setSortBy("relevance");
+    void search("", "", "", "relevance");
   };
 
   const toggleSave = async (p: AnyProduct) => {
@@ -112,6 +187,8 @@ function ExploreInner() {
     }
   };
 
+  const hasQuery = Boolean(query.trim() || category || budgetMax);
+
   return (
     <>
       <Navbar />
@@ -123,7 +200,32 @@ function ExploreInner() {
           Searches every configured provider, merges results and labels sample data.
         </p>
 
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3 lg:flex-row">
+        {/* Category chips */}
+        <div className="mt-5 flex flex-wrap items-center gap-2" role="list" aria-label="Categories">
+          <button
+            type="button"
+            onClick={() => pickCategory("")}
+            className="nav-pill border-border"
+            style={{ "--nav-hue": "#94a3b8" } as CSSProperties}
+            data-active={category === ""}
+          >
+            All
+          </button>
+          {CATEGORIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => pickCategory(c)}
+              className="nav-pill capitalize"
+              style={{ "--nav-hue": CATEGORY_HUES[c] } as CSSProperties}
+              data-active={category === c}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-4 flex flex-col gap-3 lg:flex-row">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-3.5 text-muted" />
             <input
@@ -178,6 +280,25 @@ function ExploreInner() {
           </button>
         </form>
 
+        {/* Trending searches — only when the user hasn't searched yet */}
+        {mode === "featured" && !hasQuery && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+            <span className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted">
+              <Flame size={13} className="text-warning" /> Trending
+            </span>
+            {TRENDING.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => runTrending(t)}
+                className="badge transition hover:border-accent hover:text-accent"
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+
         {error && (
           <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
             {error}
@@ -186,8 +307,16 @@ function ExploreInner() {
 
         {result && (
           <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-muted">
-            <span>
-              {result.total} results in {result.took_ms}ms
+            <span className="flex items-center gap-1 font-medium text-foreground">
+              {mode === "featured" ? (
+                <>
+                  <Sparkles size={13} className="text-accent-2" /> Featured products
+                </>
+              ) : (
+                <>
+                  {result.total} result{result.total === 1 ? "" : "s"} in {result.took_ms}ms
+                </>
+              )}
             </span>
             <span className="badge">{result.providers_queried.join(", ")}</span>
             {result.is_sample_data && <span className="badge-sample">Sample data</span>}
@@ -196,6 +325,15 @@ function ExploreInner() {
                 {e}
               </span>
             ))}
+            {hasQuery && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="ml-auto inline-flex items-center gap-1 text-accent transition hover:underline"
+              >
+                <X size={12} /> Clear
+              </button>
+            )}
           </div>
         )}
 
@@ -216,14 +354,21 @@ function ExploreInner() {
           ))}
         </section>
 
-        {result && result.products.length === 0 && !busy && (
-          <div className="card mt-8 p-8 text-center text-muted">
-            No products matched. Try a different query or clear the budget filter.
+        {busy && !result && (
+          <div className="card mt-8 flex items-center justify-center gap-2 p-10 text-muted">
+            <Loader2 size={18} className="animate-spin" /> Loading catalogue…
           </div>
         )}
-        {!result && !busy && !error && (
-          <div className="card mt-8 p-8 text-center text-muted">
-            Enter a product name or choose a category to browse the catalogue.
+
+        {result && result.products.length === 0 && !busy && (
+          <div className="card mt-8 p-10 text-center">
+            <p className="text-muted">No products matched.</p>
+            <p className="mt-1 text-sm text-muted">
+              Try a different query, clear the budget filter, or pick another category.
+            </p>
+            <button type="button" onClick={clearFilters} className="btn-ghost mt-4 inline-block text-sm">
+              Reset filters
+            </button>
           </div>
         )}
       </main>

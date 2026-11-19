@@ -1,6 +1,7 @@
 """Product endpoints: search, detail, compare, suggestions."""
 
 import logging
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -45,6 +46,27 @@ async def search(request: SearchRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail={"code": "search_failed",
                     "message": "Product search failed. Please try again."},
+        )
+
+
+@router.get("/featured", response_model=SearchResponse)
+async def featured(category: Optional[str] = None,
+                   limit: int = Query(default=24, ge=1, le=50),
+                   db: Session = Depends(get_db)):
+    """Catalogue feed for the Explore landing state — no query required.
+
+    Registered before `/{product_id}` so "featured" is never treated as a id.
+    """
+    try:
+        return await product_service.featured_products(
+            db, limit=limit, category=category,
+        )
+    except Exception:
+        logger.exception("featured_feed_failed")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={"code": "featured_failed",
+                    "message": "Could not load the catalogue feed."},
         )
 
 

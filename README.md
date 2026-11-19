@@ -54,7 +54,7 @@ For a single-domain Linux VPS deployment, see [`deploy/PUBLIC-HOSTING.md`](deplo
 
 ```powershell
 cd backend
-pytest            # 83 tests: unit + graph memory + integration + offers/reset
+pytest            # 87 tests: unit + graph memory + integration + offers/reset + featured feed
 cd ..\frontend
 npm run lint
 npm test          # Vitest: landing, login, product card, format helpers
