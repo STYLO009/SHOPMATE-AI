@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import { KeyRound, Mail } from "lucide-react";
+import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { auth as authApi, ApiRequestError } from "@/lib/api";
 
@@ -48,87 +49,90 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="bg-grid flex flex-1 items-center justify-center px-4 py-16">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="card w-full max-w-md p-7"
-      >
-        <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted">
-          Sign in to continue your shopping research.
-        </p>
+    <>
+      <Navbar />
+      <main className="bg-grid flex flex-1 items-center justify-center px-4 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="card w-full max-w-md p-7"
+        >
+          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <p className="mt-1 text-sm text-muted">
+            Sign in to continue your shopping research.
+          </p>
 
-        <form onSubmit={submit} className="mt-6 flex flex-col gap-4" data-testid="login-form">
-          <label className="block">
-            <span className="mb-1.5 block text-sm text-muted">Email</span>
-            <div className="relative">
-              <Mail size={15} className="absolute left-3 top-3 text-muted" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input pl-9"
-                placeholder="you@example.com"
-                autoComplete="email"
-              />
-            </div>
-          </label>
+          <form onSubmit={submit} className="mt-6 flex flex-col gap-4" data-testid="login-form">
+            <label className="block">
+              <span className="mb-1.5 block text-sm text-muted">Email</span>
+              <div className="relative">
+                <Mail size={15} className="absolute left-3 top-3.5 text-muted" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input pl-9"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
+              </div>
+            </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-sm text-muted">Password</span>
-            <div className="relative">
-              <KeyRound size={15} className="absolute left-3 top-3 text-muted" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input pl-9"
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
-          </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm text-muted">Password</span>
+              <div className="relative">
+                <KeyRound size={15} className="absolute left-3 top-3.5 text-muted" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input pl-9"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+            </label>
 
-          {error && (
-            <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-              {error}
-            </p>
-          )}
-          {resetSent && (
-            <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-success" role="status">
-              If an account exists for that email, a reset link has been sent.
-            </p>
-          )}
+            {error && (
+              <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                {error}
+              </p>
+            )}
+            {resetSent && (
+              <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-success" role="status">
+                If an account exists for that email, a reset link has been sent.
+              </p>
+            )}
 
-          <button type="submit" disabled={busy} className="btn-primary" data-testid="login-submit">
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+            <button type="submit" disabled={busy} className="btn-primary" data-testid="login-submit">
+              {busy ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
 
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <button type="button" onClick={forgot} className="text-muted underline hover:text-foreground">
-            Forgot password?
-          </button>
-          <Link href="/signup" className="text-accent hover:underline">
-            Create account
-          </Link>
-        </div>
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <button type="button" onClick={forgot} className="text-muted underline hover:text-foreground">
+              Forgot password?
+            </button>
+            <Link href="/signup" className="text-accent hover:underline">
+              Create account
+            </Link>
+          </div>
 
-        <div className="mt-5 border-t border-border pt-4 text-center text-sm text-muted">
-          or
-          <a
-            href={authApi.googleLoginUrl()}
-            className="btn-ghost mt-3 block"
-            data-testid="google-login"
-          >
-            Continue with Google
-          </a>
-        </div>
-      </motion.div>
-    </main>
+          <div className="mt-5 border-t border-border pt-4 text-center text-sm text-muted">
+            or
+            <a
+              href={authApi.googleLoginUrl()}
+              className="btn-ghost mt-3 block"
+              data-testid="google-login"
+            >
+              Continue with Google
+            </a>
+          </div>
+        </motion.div>
+      </main>
+    </>
   );
 }

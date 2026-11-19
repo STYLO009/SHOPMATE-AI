@@ -7,6 +7,10 @@
  * ThemeContext + a pre-hydration script) redefines the same custom
  * properties, so every `bg-surface / text-muted / border-border`
  * utility follows the active theme with no per-component changes.
+ *
+ * NOTE: component classes below live in `@layer components` so plain
+ * Tailwind utilities (pl-9, lg:w-48, text-sm …) still override them —
+ * unlayered CSS would otherwise beat every utility class.
  * ------------------------------------------------------------------ */
 :root {
   color-scheme: dark;
@@ -64,207 +68,208 @@ body {
   color: var(--foreground);
 }
 
-/* Ambient background used by the landing + dashboard shells. */
-.bg-grid {
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 42px 42px;
+@layer components {
+  /* Ambient background used by the landing + dashboard shells. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 42px 42px;
+  }
+
+  .bg-glow {
+    background:
+      radial-gradient(600px 300px at 15% -10%, rgba(79, 140, 255, 0.22), transparent 60%),
+      radial-gradient(500px 260px at 85% 0%, rgba(34, 211, 238, 0.16), transparent 60%),
+      radial-gradient(480px 320px at 60% 110%, rgba(167, 139, 250, 0.14), transparent 65%);
+  }
+
+  :root[data-theme="light"] .bg-glow {
+    background:
+      radial-gradient(600px 300px at 15% -10%, rgba(37, 99, 235, 0.14), transparent 60%),
+      radial-gradient(500px 260px at 85% 0%, rgba(8, 145, 178, 0.12), transparent 60%),
+      radial-gradient(480px 320px at 60% 110%, rgba(139, 92, 246, 0.10), transparent 65%);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+  }
+
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+  }
+
+  .text-gradient {
+    background: linear-gradient(92deg, #4f8cff 0%, #22d3ee 55%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  :root[data-theme="light"] .text-gradient {
+    background: linear-gradient(92deg, #1d4ed8 0%, #0e7490 55%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .btn-primary {
+    background: linear-gradient(92deg, var(--accent), var(--accent-2));
+    color: #04101f;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    padding: 0.6rem 1.1rem;
+    transition: filter 0.18s ease, transform 0.18s ease;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled {
+    opacity: 0.55;
+    transform: none;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.55rem 1rem;
+    color: var(--foreground);
+    transition: border-color 0.18s ease, background 0.18s ease;
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    color: var(--foreground);
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  .input::placeholder {
+    color: var(--muted);
+  }
+
+  .badge-sample {
+    background: rgba(251, 191, 36, 0.14);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    color: var(--warning);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .badge {
+    border-radius: 999px;
+    font-size: 0.72rem;
+    padding: 0.12rem 0.6rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* Thin scrollbars for chat/panels */
+  .scroll-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+
+  /* Colourful navigation pills — one hue per section so the nav reads
+   * like a dashboard rather than a wall of grey links. */
+  .nav-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    padding: 0.42rem 0.8rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    border: 1px solid transparent;
+    transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+  }
+  .nav-pill:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--nav-hue, var(--accent)) 14%, transparent);
+    border-color: color-mix(in srgb, var(--nav-hue, var(--accent)) 40%, transparent);
+    transform: translateY(-1px);
+  }
+  .nav-pill[data-active="true"] {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--nav-hue, var(--accent)) 18%, transparent);
+    border-color: color-mix(in srgb, var(--nav-hue, var(--accent)) 55%, transparent);
+  }
+  .nav-pill[data-active="true"] .nav-pill-dot {
+    background: var(--nav-hue, var(--accent));
+    box-shadow: 0 0 8px var(--nav-hue, var(--accent));
+  }
+
+  /* Brand marquee ("naming" strip on the landing page). */
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee-scroll 38s linear infinite;
+  }
+  .marquee-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  }
+
+  /* Online-status pulse */
+  .status-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+  }
+  .status-dot::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    opacity: 0.5;
+    animation: status-ping 1.8s ease-out infinite;
+  }
+
+  /* Floating research chat dock */
+  .chat-dock-panel {
+    box-shadow: 0 24px 60px -12px rgba(2, 6, 23, 0.45);
+  }
 }
 
-.bg-glow {
-  background:
-    radial-gradient(600px 300px at 15% -10%, rgba(79, 140, 255, 0.22), transparent 60%),
-    radial-gradient(500px 260px at 85% 0%, rgba(34, 211, 238, 0.16), transparent 60%),
-    radial-gradient(480px 320px at 60% 110%, rgba(167, 139, 250, 0.14), transparent 65%);
-}
-
-:root[data-theme="light"] .bg-glow {
-  background:
-    radial-gradient(600px 300px at 15% -10%, rgba(37, 99, 235, 0.14), transparent 60%),
-    radial-gradient(500px 260px at 85% 0%, rgba(8, 145, 178, 0.12), transparent 60%),
-    radial-gradient(480px 320px at 60% 110%, rgba(139, 92, 246, 0.10), transparent 65%);
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-}
-
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-}
-
-.text-gradient {
-  background: linear-gradient(92deg, #4f8cff 0%, #22d3ee 55%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-:root[data-theme="light"] .text-gradient {
-  background: linear-gradient(92deg, #1d4ed8 0%, #0e7490 55%, #7c3aed 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.btn-primary {
-  background: linear-gradient(92deg, var(--accent), var(--accent-2));
-  color: #04101f;
-  font-weight: 600;
-  border-radius: 0.75rem;
-  padding: 0.6rem 1.1rem;
-  transition: filter 0.18s ease, transform 0.18s ease;
-}
-.btn-primary:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-}
-.btn-primary:disabled {
-  opacity: 0.55;
-  transform: none;
-  cursor: not-allowed;
-}
-
-.btn-ghost {
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  padding: 0.55rem 1rem;
-  color: var(--foreground);
-  transition: border-color 0.18s ease, background 0.18s ease;
-}
-.btn-ghost:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-}
-
-.input {
-  width: 100%;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  padding: 0.65rem 0.85rem;
-  color: var(--foreground);
-  outline: none;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-.input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-.input::placeholder {
-  color: var(--muted);
-}
-
-.badge-sample {
-  background: rgba(251, 191, 36, 0.14);
-  border: 1px solid rgba(251, 191, 36, 0.45);
-  color: var(--warning);
-  border-radius: 999px;
-  font-size: 0.7rem;
-  padding: 0.1rem 0.55rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.badge {
-  border-radius: 999px;
-  font-size: 0.72rem;
-  padding: 0.12rem 0.6rem;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-
-/* Thin scrollbars for chat/panels */
-.scroll-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.scroll-thin::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 999px;
-}
-
-/* ------------------------------------------------------------------ *
- * Colourful navigation pills — one hue per section so the nav reads
- * like a dashboard rather than a wall of grey links.
- * ------------------------------------------------------------------ */
-.nav-pill {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 999px;
-  padding: 0.42rem 0.8rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--muted);
-  border: 1px solid transparent;
-  transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
-}
-.nav-pill:hover {
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--nav-hue, var(--accent)) 14%, transparent);
-  border-color: color-mix(in srgb, var(--nav-hue, var(--accent)) 40%, transparent);
-  transform: translateY(-1px);
-}
-.nav-pill[data-active="true"] {
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--nav-hue, var(--accent)) 18%, transparent);
-  border-color: color-mix(in srgb, var(--nav-hue, var(--accent)) 55%, transparent);
-}
-.nav-pill[data-active="true"] .nav-pill-dot {
-  background: var(--nav-hue, var(--accent));
-  box-shadow: 0 0 8px var(--nav-hue, var(--accent));
-}
-
-/* ------------------------------------------------------------------ *
- * Brand marquee ("naming" strip on the landing page).
- * ------------------------------------------------------------------ */
-.marquee-track {
-  display: flex;
-  width: max-content;
-  animation: marquee-scroll 38s linear infinite;
-}
-.marquee-mask {
-  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
-  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
-}
 @keyframes marquee-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .marquee-track { animation: none; }
-}
 
-/* Online-status pulse */
-.status-dot {
-  position: relative;
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-}
-.status-dot::after {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-  opacity: 0.5;
-  animation: status-ping 1.8s ease-out infinite;
-}
 @keyframes status-ping {
   0% { transform: scale(0.6); opacity: 0.7; }
   100% { transform: scale(1.6); opacity: 0; }
 }
 
-/* Floating research chat dock */
-.chat-dock-panel {
-  box-shadow: 0 24px 60px -12px rgba(2, 6, 23, 0.45);
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
 }
