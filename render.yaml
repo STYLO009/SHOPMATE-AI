@@ -1,0 +1,58 @@
+# Render Blueprint — ShopMate AI backend (FastAPI + PostgreSQL).
+#
+# Deploy: Render Dashboard → New → Blueprint → select this repository.
+# Full walkthrough (Vercel frontend + this backend): deploy/VERCEL-RENDER.md
+#
+# Notes:
+# - The backend Dockerfile runs `alembic upgrade head` on start, so schema
+#   migrations apply automatically on every deploy.
+# - Redis is intentionally disabled (REDIS_URL=""): rate limiting falls back
+#   to in-memory and graph checkpoints live in PostgreSQL.
+services:
+  - type: web
+    name: shopmate-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile # relative to repo root
+    dockerContext: backend # build context = backend/ (its requirements + app)
+    plan: free # 0.1 CPU / 512 MB — upgrade to 1c-2g if the app is OOM-killed
+    healthCheckPath: /api/health
+    envVars:
+      # Render routes to PORT (default 10000); the container binds $PORT.
+      - key: PORT
+        value: "10000"
+      - key: ENVIRONMENT
+        value: production # secure (https-only) session cookies
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true # random per workspace — do not commit secrets
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shopmate-db
+          property: connectionString
+      - key: REDIS_URL
+        value: "" # optional; graceful in-memory fallback
+      - key: BACKEND_URL
+        value: https://shopmate-api.onrender.com # public URL for static product art
+      - key: FRONTEND_URL
+        sync: false # set after the first Vercel deploy: https://<app>.vercel.app
+      - key: CORS_ORIGINS
+        sync: false # https://<app>.vercel.app (the /api proxy makes this optional)
+      - key: LLM_PROVIDER
+        value: auto # Ollama -> HuggingFace -> deterministic rule-based fallback
+      - key: OLLAMA_BASE_URL
+        value: "" # no local Ollama here: falls back to rules (set HF_TOKEN for HF)
+      # Optional Google OAuth — leave empty to hide/break nothing (email+password
+      # still works). Redirect URI must be the Vercel origin, see the guide.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false # https://<app>.vercel.app/api/auth/google/callback
+
+databases:
+  - name: shopmate-db
+    plan: free # 0.1 CPU / 256 MB / 1 GB disk
+    databaseName: shopmate
+    user: shopmate

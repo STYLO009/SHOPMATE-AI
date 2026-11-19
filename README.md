@@ -50,11 +50,13 @@ For public hosting, deploy the frontend and API behind HTTPS, set `NEXT_PUBLIC_A
 
 For a single-domain Linux VPS deployment, see [`deploy/PUBLIC-HOSTING.md`](deploy/PUBLIC-HOSTING.md) and `docker-compose.public.yml`. Caddy routes frontend and API traffic over HTTPS; only ports 80 and 443 are public.
 
+For hosting the frontend on **Vercel** with the backend on **Render**, see [`deploy/VERCEL-RENDER.md`](deploy/VERCEL-RENDER.md): the Blueprint [`render.yaml`](render.yaml) provisions the FastAPI service + free PostgreSQL, and `next.config.ts` proxies `/api/*` to the backend so the session cookie stays same-origin. Local `docker compose up` is unaffected.
+
 ## Checks
 
 ```powershell
 cd backend
-pytest            # 87 tests: unit + graph memory + integration + offers/reset + featured feed
+pytest            # 89 tests: unit + config + graph memory + integration + offers/reset + featured feed
 cd ..\frontend
 npm run lint
 npm test          # Vitest: landing, login, product card, format helpers

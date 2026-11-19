@@ -3,6 +3,7 @@
 from functools import lru_cache
 from typing import Optional
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,22 @@ class Settings(BaseSettings):
     # --- Database ---
     # PostgreSQL in production; SQLite is accepted for local tests.
     database_url: str = "sqlite:///./shopmate.db"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _psycopg3_scheme(cls, value: object) -> object:
+        """Accept plain `postgresql://` URLs from managed hosts (Render, Neon…).
+
+        Only the psycopg3 driver is installed, so SQLAlchemy needs the
+        explicit `postgresql+psycopg://` scheme — the bare form would make it
+        import the absent psycopg2 module and crash at startup (this also
+        covers `alembic upgrade head`, which reads the same setting).
+        """
+        if isinstance(value, str):
+            for legacy in ("postgres://", "postgresql://"):
+                if value.startswith(legacy):
+                    return "postgresql+psycopg://" + value[len(legacy):]
+        return value
 
     # --- Redis (optional; graceful in-memory fallback when unavailable) ---
     redis_url: str = "redis://localhost:6379/0"
